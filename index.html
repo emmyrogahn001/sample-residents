@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barangay Resident Generator</title>
+    <style>
+        /* 1. --- Page & Font Styles (Default Light Mode) --- */
+        :root {
+            --bg-page: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-header-footer: #ffffff;
+            --bg-output: #f8f9fa;
+            --bg-output-error: #fff6f6;
+            --text-primary: #1c1e21;
+            --text-secondary: #606770;
+            --text-output: #333;
+            --text-error: #d8000c;
+            --border-color: #e0e0e0;
+            --border-error: #e5c0c0;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --progress-track: #e9ecef;
+            --progress-bar: #007bff;
+        }
+
+        /* 2. --- NEW: Dark Mode Theme Variables --- */
+        body.dark-mode {
+            --bg-page: #121212;
+            --bg-card: #1e1e1e;
+            --bg-header-footer: #1e1e1e;
+            --bg-output: #252525;
+            --bg-output-error: #3f1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b3b8;
+            --text-output: #e0e0e0;
+            --text-error: #ffcccc;
+            --border-color: #333;
+            --border-error: #8b3a3a;
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --progress-track: #444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-secondary);
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        /* 3. --- Header & Theme Switch (UPDATED) --- */
+        header {
+            background-color: var(--bg-header-footer);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            
+            /* --- THIS MAKES THE HEADER STICKY --- */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--text-primary);
+        }
+
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .theme-switch input { display: none; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #007bff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* 4. --- Main Content Area --- */
+        main {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 24px 32px;
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* 5. --- Button Styles --- */
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            font-size: 15px;
+            font-weight: 600;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            flex-grow: 1;
+        }
+
+        button:disabled {
+            background-color: #4b4b4b;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        #btnJson { background-color: #007bff; color: white; }
+        #btnJson:hover:not(:disabled) { background-color: #0069d9; }
+        #btnSql { background-color: #6c757d; color: white; }
+        #btnSql:hover:not(:disabled) { background-color: #5a6268; }
+        #btnTxt { background-color: #495057; color: white; }
+        #btnTxt:hover:not(:disabled) { background-color: #3a4045; }
+        #btnCsv { background-color: #28a745; color: white; }
+        #btnCsv:hover:not(:disabled) { background-color: #218838; }
+
+        /* 6. --- Progress Bar Styles --- */
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--progress-track);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar-indeterminate {
+            width: 50%; /* The moving chunk */
+            height: 100%;
+            background-color: var(--progress-bar);
+            border-radius: 4px;
+            animation: indeterminate-progress 2s linear infinite;
+        }
+
+        @keyframes indeterminate-progress {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(250%); } 
+        }
+
+        /* 7. --- Output Box Styles --- */
+        .output-wrapper {
+            position: relative;
+        }
+        
+        pre {
+            background-color: var(--bg-output);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            max-height: 400px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--text-output);
+        }
+
+        pre.output-error {
+            background-color: var(--bg-output-error);
+            border-color: var(--border-error);
+            color: var(--text-error);
+            font-weight: 600;
+        }
+        
+        /* 8. --- Footer --- */
+        footer {
+            background-color: var(--bg-header-footer);
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            padding: 20px 32px;
+            font-size: 14px;
+            color: #888;
+        }
+        
+        /* 9. --- Copy Button Style --- */
+        .copy-button-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: -10px; 
+        }
+
+        #btnCopy {
+            display: none; /* Hidden by default */
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            background-color: #28a745; /* Green */
+            color: white;
+            z-index: 10;
+            flex-grow: 0; 
+            margin-bottom: -1px; 
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        #btnCopy:hover:not(:disabled) { background-color: #218838; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>BMIS Data Generator</h2>
+        <div class="theme-switch-wrapper">
+            <span>Light</span>
+            <label class="theme-switch" for="theme-toggle">
+                <input type="checkbox" id="theme-toggle" />
+                <span class="slider round"></span>
+            </label>
+            <span>Dark</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>Sample Residents</h1>
+            <p>Generate 200 sample residents in your desired format.</p>
+
+            <div class="buttons">
+                <button id="btnJson">Generate JSON</button>
+                <button id="btnSql">Generate SQL</button>
+                <button id="btnTxt">Generate Text</button>
+                <button id="btnCsv">Download CSV</button>
+            </div>
+
+            <div class="progress-container" id="progress-container" style="display: none;">
+                <div class="progress-bar-indeterminate"></div>
+            </div>
+
+            <div class="output-wrapper">
+                <div class="copy-button-wrapper">
+                    <button id="btnCopy">Copy</button>
+                </div>
+                <pre id="output">Click a button to see the output...</pre>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        &copy; 2025 Hosted by James. For testing purposes only.
+    </footer>
+
+    <script>
+        // 1. --- PASTE YOUR API KEY HERE ---
+        const YOUR_API_KEY = "AIzaSyBDbMeutvIFLHrXzi4wsTKxV4nFw-g_KYs";
+
+        // 2. --- Get page elements ---
+        const btnJson = document.getElementById('btnJson');
+        const btnSql = document.getElementById('btnSql');
+        const btnTxt = document.getElementById('btnTxt');
+        const btnCsv = document.getElementById('btnCsv');
+        const btnCopy = document.getElementById('btnCopy');
+        const outputElement = document.getElementById('output');
+        const progressContainer = document.getElementById('progress-container'); 
+        const themeToggle = document.getElementById('theme-toggle'); 
+
+        // 3. --- Theme Toggle Logic ---
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.checked = true;
+            }
+        })(); 
+
+        themeToggle.addEventListener('change', (event) => {
+            if (event.target.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // 4. --- Main function to handle clicks ---
+        async function handleGeneration(format) {
+            btnJson.disabled = true;
+            btnSql.disabled = true;
+            btnTxt.disabled = true;
+            btnCsv.disabled = true;
+            
+            btnCopy.style.display = 'none'; 
+            btnCopy.textContent = 'Copy'; 
+            progressContainer.style.display = 'block'; 
+            outputElement.textContent = ""; 
+            outputElement.classList.remove('output-error'); 
+
+            try {
+                const residentArray = await getResidentArrayFromApi();
+
+                if (residentArray) {
+                    let outputText = "";
+                    
+                    if (format === 'json') {
+                        outputText = JSON.stringify(residentArray, null, 2);
+                    } else if (format === 'sql') {
+                        outputText = convertArrayToSql(residentArray); 
+                    } else if (format === 'txt') {
+                        outputText = convertArrayToTxt(residentArray);
+                    } else if (format === 'csv') {
+                        downloadAsCsv(residentArray);
+                        outputText = `CSV file with ${residentArray.length} residents successfully prepared for download.`;
+                    }
+                    
+                    outputElement.textContent = outputText;
+                    if (format !== 'csv') { 
+                        btnCopy.style.display = 'inline-block';
+                    }
+                }
+            } catch (error) {
+                console.error("Main generation failed:", error);
+                outputElement.textContent = "An unexpected error occurred: " + error.message;
+                outputElement.classList.add('output-error'); 
+            } finally {
+                btnJson.disabled = false;
+                btnSql.disabled = false;
+                btnTxt.disabled = false;
+                btnCsv.disabled = false;
+                progressContainer.style.display = 'none'; 
+            }
+        }
+
+        // 5. --- API fetching function (unchanged) ---
+        async function getResidentArrayFromApi() {
+            if (YOUR_API_KEY === "PASTE_YOUR_API_KEY_FROM_AI_STUDIO_HERE") {
+                outputElement.textContent = "Error: Please paste your API key into the YOUR_API_KEY variable in the code (line 155).";
+                outputElement.classList.add('output-error'); 
+                return null; 
+            }
+
+            const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + YOUR_API_KEY;
+
+            // --- UPDATED PROMPT FOR 200 RESIDENTS ---
+            const prompt = `
+                Generate a JSON array of 200 random people for a 
+                Barangay Management System in the Philippines.
+
+                Only output the raw JSON array, starting with [ and ending with ].
+                Do not include any other text like "Here is the JSON:" or markdown tags.
+                
+                Each object in the array must use these exact fields:
+                - firstName: A common Filipino first name.
+                - middleName: A common Filipino last name used as a middle name.
+                - lastName: A common Filipino last name.
+                - suffix: (e.g., "Jr.", "Sr.", "III"). Make this blank about 80% of the time.
+                - birthdate: A random date in "YYYY-MM-DD" format.
+                - gender: "Male" or "Female".
+                - civilStatus: "Single", "Married", "Widowed", or "Separated".
+                - purok: One of "Purok 1", "Purok 2", "Purok 3", "Purok 4", or "Purok 5".
+                - barangay: This field MUST always be the exact string "Barangay Matindeg".
+                - streetAddress: A realistic-sounding fake Filipino street address (e.g., "123 Mabini St.", "Lot 4, Block 5, Sampaguita St."). Do NOT include any purok or barangay name in this field.
+                - occupation: A common occupation.
+                - contactNumber: A fake 11-digit PH mobile number (e.g., "09#########").
+                - email: A fake email address, ending in @example.com.
+                - bloodType: A random blood type (e.g., "A+", "O-", "B+").
+                - birthPlace: A city and province in the Philippines (e.g., "Manila, NCR").
+            `;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} ${response.statusText}. Details: ${errorData.error.message}`);
+                }
+
+                const data = await response.json();
+                let jsonText = data.candidates[0].content.parts[0].text;
+                
+                jsonText = jsonText.replace(/```json/g, "").replace(/```/g, "");
+                jsonText = jsonText.trim(); 
+
+                let parsedJson;
+                if (jsonText.startsWith("[") && jsonText.endsWith("]")) {
+                    parsedJson = JSON.parse(jsonText);
+                } else {
+                    const jsonStartIndex = jsonText.indexOf('[');
+                    const jsonEndIndex = jsonText.lastIndexOf(']');
+                    if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+                        jsonText = jsonText.substring(jsonStartIndex, jsonEndIndex + 1);
+                        parsedJson = JSON.parse(jsonText);
+                    } else {
+                        throw new Error("API did not return a valid JSON array. Response was: " + jsonText);
+                    }
+                }
+                
+                return parsedJson; 
+
+            } catch (error) {
+                console.error("API Fetch failed:", error);
+                outputElement.textContent = "Error: " + error.message + "\n\nCheck the F12 Console. Your API key might be incorrect, or the model could be overloaded (503).";
+                outputElement.classList.add('output-error'); 
+                return null; 
+            }
+        }
+        
+        // 6. --- SQL Converter function (unchanged) ---
+        function convertArrayToSql(residentArray) {
+            if (residentArray.length === 0) return "-- No data to insert --";
+            const tableName = "residents";
+            const columns = [
+                "firstName", "middleName", "lastName", "suffix", 
+                "birthdate", "gender", "civilStatus", "purok", "barangay",
+                "streetAddress", "occupation", "contactNumber", "email", 
+                "bloodType", "birthPlace"
+            ];
+            const colsString = columns.join(", ");
+            const escapeSql = (str) => {
+                if (typeof str !== 'string') return str;
+                return str.replace(/'/g, "''");
+            };
+            const allValueRows = []; 
+            for (const resident of residentArray) {
+                const values = columns.map(col => {
+                    const value = resident[col] || ""; 
+                    return `'${escapeSql(value)}'`; 
+                });
+                allValueRows.push(`(${values.join(", ")})`);
+            }
+            const allValuesString = allValueRows.join(",\n");
+            return `INSERT INTO ${tableName} (${colsString}) \nVALUES \n${allValuesString};`;
+        }
+        
+        // 7. --- Plain Text Converter functions (unchanged) ---
+        function convertArrayToTxt(residentArray) {
+            let allText = "";
+            let count = 1;
+            for (const resident of residentArray) {
+                allText += `--- Resident ${count} ---\n`;
+                allText += formatResidentAsTxt(resident); 
+                allText += "\n\n";
+                count++;
+            }
+            return allText;
+        }
+
+        function formatResidentAsTxt(resident) {
+            const formatKey = (key) => {
+                const result = key.replace(/([A-Z])/g, ' $1');
+                return result.charAt(0).toUpperCase() + result.slice(1);
+            };
+            let text = "";
+            for (const [key, value] of Object.entries(resident)) {
+                text += `${formatKey(key)}: ${value || 'N/A'}\n`;
+            }
+            return text;
+        }
+
+        // 8. --- CSV Download function (unchanged) ---
+        function downloadAsCsv(residentArray) {
+            if (residentArray.length === 0) return;
+            const columns = Object.keys(residentArray[0]);
+            const header = columns.join(',');
+            const rows = residentArray.map(resident => {
+                const values = columns.map(col => {
+                    const value = (resident[col] || "").toString();
+                    const escapedValue = value.replace(/"/g, '""'); 
+                    return `"${escapedValue}"`; 
+                }).join(',');
+                return values;
+            });
+            const csvContent = header + '\n' + rows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "residents_export.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- 9. Event Listeners (unchanged) ---
+        btnJson.addEventListener('click', () => handleGeneration('json'));
+        btnSql.addEventListener('click', () => handleGeneration('sql'));
+        btnTxt.addEventListener('click', () => handleGeneration('txt')); 
+        btnCsv.addEventListener('click', () => handleGeneration('csv')); 
+        
+        btnCopy.addEventListener('click', () => {
+            const textToCopy = outputElement.textContent;
+            if (!textToCopy || textToCopy.startsWith("Click a button")) {
+                return;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                btnCopy.textContent = "Copied!";
+                btnCopy.disabled = true;
+                setTimeout(() => {
+                    btnCopy.textContent = "Copy";
+                    btnCopy.disabled = false;
+                }, 2000); 
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                btnCopy.textContent = "Error";
+                setTimeout(() => {
+                    btnCopy.textContent = "Copy";
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
