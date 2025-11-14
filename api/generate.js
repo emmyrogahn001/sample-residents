@@ -1,7 +1,7 @@
-// File: /api/generate.js
+
 
 export default async function handler(request, response) {
-  // 1. Get the secret API key from Vercel's Environment Variables
+
   const API_KEY = process.env.GEMINI_API_KEY;
   
   if (!API_KEY) {
@@ -10,7 +10,7 @@ export default async function handler(request, response) {
 
   const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + API_KEY;
 
-  // 2. The same prompt we had before
+  
   const prompt = `
       Generate a JSON array of 200 random people for a 
       Barangay Management System in the Philippines.
@@ -37,7 +37,7 @@ export default async function handler(request, response) {
   `;
 
   try {
-    // 3. Call the Gemini API *from the server*
+    
     const geminiResponse = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -52,18 +52,18 @@ export default async function handler(request, response) {
     const data = await geminiResponse.json();
     let jsonText = data.candidates[0].content.parts[0].text;
 
-    // 4. Clean the text and send it back to the browser
+   
     jsonText = jsonText.replace(/```json/g, "").replace(/```/g, "");
     jsonText = jsonText.trim();
     
-    // Find the start and end of the array
+  
     const jsonStartIndex = jsonText.indexOf('[');
     const jsonEndIndex = jsonText.lastIndexOf(']');
     
     if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
       jsonText = jsonText.substring(jsonStartIndex, jsonEndIndex + 1);
       const parsedJson = JSON.parse(jsonText);
-      // 5. Send the successful JSON response
+      
       return response.status(200).json(parsedJson);
     } else {
       throw new Error("API did not return a valid JSON array.");
